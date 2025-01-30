@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible"
+		content="IE=edge">
+	<meta name="viewport"
+		content="width=device-width, initial-scale=1.0">
+	<title>Routific Converter2</title>
+</head>
+<body>
+	<!-- Upload section-->
+	<div>
+		<h3>Upload Routific CSV file</h3> <br>
+		<!-- action to the /upload route-->
+		<form action="/upload"
+			method="post"
+			enctype="multipart/form-data">
+			Select file to upload: <input type="file"
+										name="uploadFile"
+										id="">
+			<br><br>
+			<button type="submit">Generate Run Sheet</button>
+		</form>
+		<br>
+	</div>
+
+	<!-- Download Section-->
+	<div>
+		<h3>Download Converted Run Sheet</h3> <br>
+		<!-- action to the /download route-->
+		<form action="/download" method="get">
+			<button type="submit">Download</button>
+		</form>
+	</div>
+	
+</body>
+</html>

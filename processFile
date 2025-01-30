@@ -1,0 +1,125 @@
+// import { table } from "console";
+const table = require('console');
+const fs = require("fs");
+const { parse } = require("csv-parse");
+var excel = require('exceljs');
+
+var workbook = null;
+
+function createRunSheet(filePath,fileName){
+  var csvData = [];
+  fs.createReadStream(filePath)
+    .pipe(parse({ delimiter: ",", from_line: 2 }))
+    .on("data", (row) => {
+      csvData.push(row);
+    })
+    .on("end", () => {
+      createWorkbook(csvData,fileName)
+    });
+
+
+};
+
+function modifyCell(ws, cellName, value){
+    const cell = ws.getCell(cellName);
+    cell.value = value;
+};
+
+
+function generateHeaderRows(ws) {
+    ws.mergeCells('B1:M1');
+    ws.mergeCells('B2:E2');
+    ws.mergeCells('F2:H2');
+    ws.mergeCells('I2:M2');
+    ws.columns = [{width:11},{width:11},{width:11},{width:20},{width:15},{width:25},{width:30},{width:30},{width:15},{width:11},{width:11},{width:15},{width:20}];
+    ws.getRow(1).height = 60;
+    ws.getRow(1).font = {name: 'Calibri', color: {argb:"ff5487ce"},size: 26, bold: true, underline: true};
+    ws.getRow(1).alignment = {horizontal: 'center', vertical: 'middle'};
+    ws.getRow(2).height = 30;
+    ws.getRow(2).font = {name: 'Calibri', color: {argb:'ff000000'},size: 18, bold: true};
+    ws.getRow(2).alignment = {vertical: 'middle'};
+    ws.getRow(3).height = 53;
+    ws.getRow(3).font = {name: 'Calibri', color: {argb:'ff000000'},size: 12, bold: true};
+    ws.getRow(3).alignment = {horizontal: 'center', vertical: 'middle', wrapText:true};
+
+    modifyCell(ws,'B1',"Palliative Pharmacy Solutions - Manifest");
+    modifyCell(ws,'B2',"Driver:");
+    modifyCell(ws,'F2',"Truck:");
+    modifyCell(ws,'I2',"Date:");
+    const tableHeaderRow = ws.getRow(3);
+    tableHeaderRow.getCell(1).value = 'Sequence';
+    tableHeaderRow.getCell(2).value = 'RX Number';
+    tableHeaderRow.getCell(3).value = 'Customer Name';
+    tableHeaderRow.getCell(4).value = 'Address';
+    tableHeaderRow.getCell(5).value = 'City';
+    tableHeaderRow.getCell(6).value = 'State';
+    tableHeaderRow.getCell(7).value = 'ZIP Code';
+    tableHeaderRow.getCell(8).value = 'Phone Number';
+};
+
+function generateRoutificLegs(ws, rowData, rowToInsert){
+    ws.getRow(rowToInsert).font = {name: 'Calibri', color: {argb:'ff000000'}, size: 10};
+    ws.getRow(rowToInsert).alignment = {horizontal: 'left', wrapText: true};
+    ws.getRow(rowToInsert).height = 55;
+    ws.getRow(rowToInsert).getCell(1).value = rowData[2];
+    // ws.getRow(rowToInsert).getCell(2).value = rowData[mapRXNumber];
+    ws.getRow(rowToInsert).getCell(3).value = rowData[3]
+    ws.getRow(rowToInsert).getCell(4).value = rowData[5];
+    ws.getRow(rowToInsert).getCell(5).value = rowData[6];
+    ws.getRow(rowToInsert).getCell(6).value = rowData[7];
+    ws.getRow(rowToInsert).getCell(7).value = rowData[8];
+    ws.getRow(rowToInsert).getCell(8).value = rowData[20];
+
+};
+
+function generateFooterRows(ws, rowToInsert){
+    ws.getRow(rowToInsert).getCell(6).value = "Total Deliveries: " + ws.getRow(rowToInsert-1).getCell(3).value;
+
+    // add print area
+    ws.pageSetup.printArea = "A1:L".concat(rowToInsert+1);
+};
+
+function generateBorders(ws,totalRows) {
+    columns = ['A','B','C','D','E','F','G','H','I','J','K','L','M'];
+    for(let i=1; i <= totalRows; i++ ) {
+        for(let col in columns) {
+            ws.getCell(columns[col].concat(i)).border = {
+                top: {style: 'thin'},
+                left: {style: 'thin'},
+                bottom: {style: 'thin'},
+                right: {style: 'thin'}
+            }        
+        }
+    }
+};
+
+
+function createWorkbook(csvData,fileName) {
+    workbook = new excel.Workbook();
+    for(let i in csvData){
+      if(csvData[i][2] == '0') {
+        console.log("Creating new tab for driver: "+csvData[i][0]+" with Sequence: "+(csvData[i][2]));
+        var workSheet = workbook.addWorksheet(csvData[i][0],{pageSetup:{fitToPage: true, orientation:'landscape'}});
+        generateHeaderRows(workSheet);
+        var row = 3;
+      }
+      else if (csvData[i][2] == '999') {
+        row=row+3;
+        generateFooterRows(workSheet,row);
+        generateBorders(workSheet,row+1);
+      }
+      else {
+        row++;
+        generateRoutificLegs(workSheet, csvData[i], row);
+      }
+    };
+
+    // outputFileLocation = "output/".concat(fileName.replace('.csv',''),'-RunSheet.xlsx');
+
+    workbook.xlsx.writeFile('./output/'+fileName.replace('.csv','')+'-RunSheet.xlsx');
+
+    // return outputFileLocation;
+};
+
+
+module.exports = {createRunSheet};
